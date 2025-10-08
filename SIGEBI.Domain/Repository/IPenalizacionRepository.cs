@@ -1,6 +1,16 @@
-﻿namespace SIGEBI.Domain.Repository;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using SIGEBI.Domain.Entities;
 
-public class IPenalizacionRepository
+namespace SIGEBI.Domain.Repository
 {
-    
+    public interface IPenalizacionRepository
+    {
+        Task AddAsync(Penalizacion penalizacion, CancellationToken ct = default);
+        Task UpdateAsync(Penalizacion penalizacion, CancellationToken ct = default);
+        Task<IReadOnlyList<Penalizacion>> ObtenerActivasPorUsuarioAsync(Guid usuarioId, CancellationToken ct = default);
+        Task<int> ContarActivasAsync(CancellationToken ct = default);
+    }
 }
