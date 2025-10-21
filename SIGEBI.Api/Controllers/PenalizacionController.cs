@@ -86,6 +86,18 @@ public class PenalizacionController : ControllerBase
             return BadRequest(new { message = "La penalización ya se encuentra cerrada." });
         }
 
+        try
+        {
+            penalizacion.CerrarAnticipadamente(request.Razon.Trim());
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         penalizacion.CerrarAnticipadamente(request.Razon.Trim());
         await _penalizacionRepository.UpdateAsync(penalizacion, ct);
         return Ok(Map(penalizacion));

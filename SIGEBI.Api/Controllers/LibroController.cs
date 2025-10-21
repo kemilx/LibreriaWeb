@@ -90,6 +90,15 @@ public class LibroController : ControllerBase
         var libro = await _libroRepository.GetByIdAsync(id, ct);
         if (libro is null) return NotFound();
 
+        try
+        {
+            libro.ActualizarUbicacion(request.Ubicacion);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+
         libro.ActualizarUbicacion(request.Ubicacion);
         await _libroRepository.UpdateAsync(libro, ct);
         return Ok(Map(libro));

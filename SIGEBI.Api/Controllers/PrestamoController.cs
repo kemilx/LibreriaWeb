@@ -122,6 +122,10 @@ public class PrestamoController : ControllerBase
             prestamo.MarcarDevuelto(request.FechaEntregaUtc, request.Observaciones);
             libro.MarcarDevuelto();
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
@@ -147,6 +151,10 @@ public class PrestamoController : ControllerBase
         try
         {
             prestamo.Cancelar(request.Motivo.Trim());
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
