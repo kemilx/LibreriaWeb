@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SIGEBI.Domain.Entities;
 using SIGEBI.Domain.Repository;
+using SIGEBI.Domain.ValueObjects;
 
 namespace SIGEBI.Persistence.Repositories
 {
@@ -19,11 +20,20 @@ namespace SIGEBI.Persistence.Repositories
                              .FirstOrDefaultAsync(u => u.Id == id, ct);
 
         public async Task<Usuario?> GetByEmailAsync(string email, CancellationToken ct = default)
-            => await _context.Usuarios
-                             .FirstOrDefaultAsync(u => u.Email.Value == email, ct);
+        {
+            var normalizedEmail = EmailAddress.Create(email).Value;
+
+            return await _context.Usuarios
+                                 .FirstOrDefaultAsync(u => EF.Property<string>(u, "Email") == normalizedEmail, ct);
+        }
 
         public async Task<bool> EmailExisteAsync(string email, CancellationToken ct = default)
-            => await _context.Usuarios.AnyAsync(u => u.Email.Value == email, ct);
+        {
+            var normalizedEmail = EmailAddress.Create(email).Value;
+
+            return await _context.Usuarios
+                                 .AnyAsync(u => EF.Property<string>(u, "Email") == normalizedEmail, ct);
+        }
 
         public async Task AddAsync(Usuario usuario, CancellationToken ct = default)
         {

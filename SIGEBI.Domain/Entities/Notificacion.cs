@@ -12,7 +12,7 @@ namespace SIGEBI.Domain.Entities
         public string Mensaje { get; private set; } = null!;
         public string Tipo { get; private set; } = null!;
         public bool Leida { get; private set; }
-        public DateTime FechaLecturaUtc { get; private set; }
+        public DateTime? FechaLecturaUtc { get; private set; }
 
         public DateTime FechaCreacionUtc => CreatedAtUtc;
 
