@@ -5,6 +5,10 @@ namespace SIGEBI.Domain.Entities
 {
     public sealed class Configuracion : Entity
     {
+        private const int MaxClaveLength = 120;
+        private const int MaxValorLength = 500;
+        private const int MaxDescripcionLength = 500;
+
         private Configuracion() { }
 
         public string Clave { get; private set; } = null!;
@@ -19,11 +23,27 @@ namespace SIGEBI.Domain.Entities
             if (string.IsNullOrWhiteSpace(valor))
                 throw new ArgumentException("Valor requerido.", nameof(valor));
 
+            var claveLimpia = clave.Trim();
+            if (claveLimpia.Length > MaxClaveLength)
+                throw new ArgumentException($"La clave no puede exceder {MaxClaveLength} caracteres.", nameof(clave));
+
+            var valorLimpio = valor.Trim();
+            if (valorLimpio.Length > MaxValorLength)
+                throw new ArgumentException($"El valor no puede exceder {MaxValorLength} caracteres.", nameof(valor));
+
+            string? descripcionLimpia = null;
+            if (!string.IsNullOrWhiteSpace(descripcion))
+            {
+                descripcionLimpia = descripcion.Trim();
+                if (descripcionLimpia.Length > MaxDescripcionLength)
+                    throw new ArgumentException($"La descripción no puede exceder {MaxDescripcionLength} caracteres.", nameof(descripcion));
+            }
+
             return new Configuracion
             {
-                Clave = clave.Trim(),
-                Valor = valor.Trim(),
-                Descripcion = string.IsNullOrWhiteSpace(descripcion) ? null : descripcion.Trim(),
+                Clave = claveLimpia,
+                Valor = valorLimpio,
+                Descripcion = descripcionLimpia,
                 Activo = activo
             };
         }
@@ -33,13 +53,28 @@ namespace SIGEBI.Domain.Entities
             if (string.IsNullOrWhiteSpace(nuevoValor))
                 throw new ArgumentException("Valor requerido.", nameof(nuevoValor));
 
-            Valor = nuevoValor.Trim();
+            var valorLimpio = nuevoValor.Trim();
+            if (valorLimpio.Length > MaxValorLength)
+                throw new ArgumentException($"El valor no puede exceder {MaxValorLength} caracteres.", nameof(nuevoValor));
+
+            Valor = valorLimpio;
             Touch();
         }
 
         public void ActualizarDescripcion(string? descripcion)
         {
-            Descripcion = string.IsNullOrWhiteSpace(descripcion) ? null : descripcion.Trim();
+            if (string.IsNullOrWhiteSpace(descripcion))
+            {
+                Descripcion = null;
+            }
+            else
+            {
+                var descripcionLimpia = descripcion.Trim();
+                if (descripcionLimpia.Length > MaxDescripcionLength)
+                    throw new ArgumentException($"La descripción no puede exceder {MaxDescripcionLength} caracteres.", nameof(descripcion));
+
+                Descripcion = descripcionLimpia;
+            }
             Touch();
         }
 

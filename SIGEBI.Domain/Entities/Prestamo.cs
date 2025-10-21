@@ -6,6 +6,8 @@ namespace SIGEBI.Domain.Entities
 {
     public sealed class Prestamo : AggregateRoot
     {
+        private const int MaxObservacionesLength = 500;
+
         private Prestamo() { }
 
         public Guid LibroId { get; private set; }
@@ -47,7 +49,19 @@ namespace SIGEBI.Domain.Entities
                 throw new InvalidOperationException("Solo préstamos activos o vencidos pueden devolverse.");
             Estado = EstadoPrestamo.Devuelto;
             FechaEntregaRealUtc = fechaEntregaUtc;
-            Observaciones = observaciones;
+
+            if (string.IsNullOrWhiteSpace(observaciones))
+            {
+                Observaciones = null;
+            }
+            else
+            {
+                var observacionesLimpias = observaciones.Trim();
+                if (observacionesLimpias.Length > MaxObservacionesLength)
+                    throw new ArgumentException($"Las observaciones no pueden exceder {MaxObservacionesLength} caracteres.", nameof(observaciones));
+
+                Observaciones = observacionesLimpias;
+            }
             Touch();
         }
 
@@ -55,8 +69,15 @@ namespace SIGEBI.Domain.Entities
         {
             if (Estado is not (EstadoPrestamo.Pendiente or EstadoPrestamo.Activo))
                 throw new InvalidOperationException("Solo préstamos pendientes o activos pueden cancelarse.");
+            if (string.IsNullOrWhiteSpace(motivo))
+                throw new ArgumentException("El motivo de cancelación es obligatorio.", nameof(motivo));
+
+            var motivoLimpio = motivo.Trim();
+            if (motivoLimpio.Length > MaxObservacionesLength)
+                throw new ArgumentException($"El motivo de cancelación no puede exceder {MaxObservacionesLength} caracteres.", nameof(motivo));
+
             Estado = EstadoPrestamo.Cancelado;
-            Observaciones = motivo;
+            Observaciones = motivoLimpio;
             Touch();
         }
 
