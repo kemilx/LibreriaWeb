@@ -13,6 +13,9 @@ namespace SIGEBI.Persistence.Repositories
             _context = context;
         }
 
+        public async Task<Penalizacion?> GetByIdAsync(Guid id, CancellationToken ct = default)
+            => await _context.Penalizaciones.FirstOrDefaultAsync(p => p.Id == id, ct);
+
         public async Task AddAsync(Penalizacion penalizacion, CancellationToken ct = default)
         {
             await _context.Penalizaciones.AddAsync(penalizacion, ct);
