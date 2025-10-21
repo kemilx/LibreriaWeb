@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using SIGEBI.Api.Dtos;
 using SIGEBI.Domain.Entities;
@@ -27,7 +30,29 @@ public class PenalizacionController : ControllerBase
     public async Task<ActionResult<IEnumerable<PenalizacionDto>>> ObtenerActivas(Guid usuarioId, CancellationToken ct)
     {
         var penalizaciones = await _penalizacionRepository.ObtenerActivasPorUsuarioAsync(usuarioId, ct);
-        return Ok(penalizaciones.Select(Map));
+        if (penalizaciones.Count == 0) return Ok(Array.Empty<PenalizacionDto>());
+
+        var ahora = DateTime.UtcNow;
+        var modificadas = new List<Penalizacion>();
+
+        foreach (var penalizacion in penalizaciones)
+        {
+            var seguiaActiva = penalizacion.Activa;
+            penalizacion.VerificarEstado(ahora);
+
+            if (seguiaActiva && !penalizacion.Activa)
+            {
+                modificadas.Add(penalizacion);
+            }
+        }
+
+        foreach (var penalizacion in modificadas)
+        {
+            await _penalizacionRepository.UpdateAsync(penalizacion, ct);
+        }
+
+        var activas = penalizaciones.Where(p => p.Activa).Select(Map).ToArray();
+        return Ok(activas);
     }
 
     [HttpPost]
@@ -98,7 +123,7 @@ public class PenalizacionController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
-        penalizacion.CerrarAnticipadamente(request.Razon.Trim());
+
         await _penalizacionRepository.UpdateAsync(penalizacion, ct);
         return Ok(Map(penalizacion));
     }

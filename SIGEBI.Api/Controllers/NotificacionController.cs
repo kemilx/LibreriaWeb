@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using SIGEBI.Api.Dtos;
 using SIGEBI.Domain.Entities;
