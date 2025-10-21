@@ -5,6 +5,8 @@ namespace SIGEBI.Domain.ValueObjects
 {
     public sealed class EmailAddress
     {
+        public const int MaxLength = 256;
+
         private static readonly Regex Pattern = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled);
         public string Value { get; }
 
@@ -19,6 +21,9 @@ namespace SIGEBI.Domain.ValueObjects
                 throw new ArgumentException("El email no puede estar vacío.", nameof(value));
 
             value = value.Trim();
+
+            if (value.Length > MaxLength)
+                throw new ArgumentException($"El email no puede exceder {MaxLength} caracteres.", nameof(value));
 
             if (!Pattern.IsMatch(value))
                 throw new ArgumentException("Formato de email inválido.", nameof(value));

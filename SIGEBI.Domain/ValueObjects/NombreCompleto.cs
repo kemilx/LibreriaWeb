@@ -4,6 +4,9 @@ namespace SIGEBI.Domain.ValueObjects
 {
     public sealed class NombreCompleto
     {
+        public const int MaxNombresLength = 100;
+        public const int MaxApellidosLength = 120;
+
         public string Nombres { get; }
         public string Apellidos { get; }
 
@@ -20,7 +23,15 @@ namespace SIGEBI.Domain.ValueObjects
             if (string.IsNullOrWhiteSpace(apellidos))
                 throw new ArgumentException("Apellidos requeridos.", nameof(apellidos));
 
-            return new NombreCompleto(nombres.Trim(), apellidos.Trim());
+            var nombresLimpios = nombres.Trim();
+            var apellidosLimpios = apellidos.Trim();
+
+            if (nombresLimpios.Length > MaxNombresLength)
+                throw new ArgumentException($"Los nombres no pueden exceder {MaxNombresLength} caracteres.", nameof(nombres));
+            if (apellidosLimpios.Length > MaxApellidosLength)
+                throw new ArgumentException($"Los apellidos no pueden exceder {MaxApellidosLength} caracteres.", nameof(apellidos));
+
+            return new NombreCompleto(nombresLimpios, apellidosLimpios);
         }
 
         public string Completo => $"{Nombres} {Apellidos}";
