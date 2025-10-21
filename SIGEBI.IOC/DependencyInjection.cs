@@ -1,4 +1,3 @@
-using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,13 +19,7 @@ public static class DependencyInjection
         }
         else
         {
-            services.AddDbContext<SIGEBIDbContext>(options =>
-                options.UseSqlServer(
-                    connectionString,
-                    sql => sql.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(10),
-                        errorNumbersToAdd: null)));
+            services.AddDbContext<SIGEBIDbContext>(options => options.UseSqlServer(connectionString));
         }
 
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();

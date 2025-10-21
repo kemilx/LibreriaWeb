@@ -1,10 +1,4 @@
-using System;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using SIGEBI.IOC;
-using SIGEBI.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,8 +8,6 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-
-await EnsureDatabaseCreatedAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
 {
