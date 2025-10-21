@@ -22,3 +22,25 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static async Task EnsureDatabaseCreatedAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<SIGEBIDbContext>();
+
+    if (!context.Database.IsRelational())
+    {
+        return;
+    }
+
+    try
+    {
+        await context.Database.EnsureCreatedAsync();
+    }
+    catch (SqlException ex)
+    {
+        throw new InvalidOperationException(
+            "No se pudo crear o abrir la base de datos SIGEBI. Verifica la cadena de conexión y los permisos del usuario actual.",
+            ex);
+    }
+}
