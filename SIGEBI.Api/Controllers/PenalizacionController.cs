@@ -98,6 +98,7 @@ public class PenalizacionController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+        penalizacion.CerrarAnticipadamente(request.Razon.Trim());
         await _penalizacionRepository.UpdateAsync(penalizacion, ct);
         return Ok(Map(penalizacion));
     }

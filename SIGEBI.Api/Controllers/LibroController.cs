@@ -99,6 +99,7 @@ public class LibroController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
 
+        libro.ActualizarUbicacion(request.Ubicacion);
         await _libroRepository.UpdateAsync(libro, ct);
         return Ok(Map(libro));
     }
