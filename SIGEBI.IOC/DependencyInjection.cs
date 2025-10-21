@@ -1,6 +1,42 @@
-﻿namespace SIGEBI.IOC;
+using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using SIGEBI.Domain.Repository;
+using SIGEBI.Persistence;
+using SIGEBI.Persistence.Repositories;
 
-public class DependencyInjection
+namespace SIGEBI.IOC;
+
+public static class DependencyInjection
 {
-    
+    public static IServiceCollection AddSIGEBIPersistence(this IServiceCollection services, IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            services.AddDbContext<SIGEBIDbContext>(options => options.UseInMemoryDatabase("SIGEBI"));
+        }
+        else
+        {
+            services.AddDbContext<SIGEBIDbContext>(options =>
+                options.UseSqlServer(
+                    connectionString,
+                    sql => sql.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(10),
+                        errorNumbersToAdd: null)));
+        }
+
+        services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<ILibroRepository, LibroRepository>();
+        services.AddScoped<IPrestamoRepository, PrestamoRepository>();
+        services.AddScoped<INotificacionRepository, NotificacionRepository>();
+        services.AddScoped<IPenalizacionRepository, PenalizacionRepository>();
+        services.AddScoped<IAdminRepository, AdminRepository>();
+        services.AddScoped<RolRepository>();
+
+        return services;
+    }
 }

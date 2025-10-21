@@ -1,15 +1,22 @@
+using System;
+using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using SIGEBI.IOC;
+using SIGEBI.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
+builder.Services.AddSIGEBIPersistence(builder.Configuration);
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+await EnsureDatabaseCreatedAsync(app.Services);
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -23,3 +30,25 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static async Task EnsureDatabaseCreatedAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<SIGEBIDbContext>();
+
+    if (!context.Database.IsRelational())
+    {
+        return;
+    }
+
+    try
+    {
+        await context.Database.EnsureCreatedAsync();
+    }
+    catch (SqlException ex)
+    {
+        throw new InvalidOperationException(
+            "No se pudo crear o abrir la base de datos SIGEBI. Verifica la cadena de conexión y los permisos del usuario actual.",
+            ex);
+    }
+}

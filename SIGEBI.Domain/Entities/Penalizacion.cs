@@ -5,6 +5,8 @@ namespace SIGEBI.Domain.Entities
 {
     public sealed class Penalizacion : Entity
     {
+        private const int MaxMotivoLength = 500;
+
         private Penalizacion() { }
 
         public Guid UsuarioId { get; private set; }
@@ -21,6 +23,10 @@ namespace SIGEBI.Domain.Entities
             if (finUtc <= inicioUtc) throw new ArgumentException("La fecha fin debe ser posterior a la fecha inicio.", nameof(finUtc));
             if (string.IsNullOrWhiteSpace(motivo)) throw new ArgumentException("Motivo requerido.", nameof(motivo));
 
+            var motivoLimpio = motivo.Trim();
+            if (motivoLimpio.Length > MaxMotivoLength)
+                throw new ArgumentException($"El motivo no puede exceder {MaxMotivoLength} caracteres.", nameof(motivo));
+
             return new Penalizacion
             {
                 UsuarioId = usuarioId,
@@ -28,7 +34,7 @@ namespace SIGEBI.Domain.Entities
                 Monto = monto,
                 FechaInicioUtc = inicioUtc,
                 FechaFinUtc = finUtc,
-                Motivo = motivo.Trim(),
+                Motivo = motivoLimpio,
                 Activa = true
             };
         }
@@ -45,8 +51,16 @@ namespace SIGEBI.Domain.Entities
         public void CerrarAnticipadamente(string razon)
         {
             if (!Activa) return;
+            if (string.IsNullOrWhiteSpace(razon))
+                throw new ArgumentException("La razón es obligatoria.", nameof(razon));
+
+            var razonLimpia = razon.Trim();
+            var nuevoMotivo = $"{Motivo} | Cierre anticipado: {razonLimpia}";
+            if (nuevoMotivo.Length > MaxMotivoLength)
+                throw new InvalidOperationException($"La razón indicada excede el máximo de {MaxMotivoLength} caracteres al combinarse con el motivo existente.");
+
             Activa = false;
-            Motivo = $"{Motivo} | Cierre anticipado: {razon}";
+            Motivo = nuevoMotivo;
             Touch();
         }
     }

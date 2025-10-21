@@ -6,6 +6,11 @@ namespace SIGEBI.Domain.Entities
 {
     public sealed class Libro : AggregateRoot
     {
+        private const int MaxTituloLength = 250;
+        private const int MaxAutorLength = 200;
+        private const int MaxIsbnLength = 40;
+        private const int MaxUbicacionLength = 100;
+
         private Libro() { }
 
         public string Titulo { get; private set; } = null!;
@@ -26,12 +31,36 @@ namespace SIGEBI.Domain.Entities
             if (ejemplares <= 0)
                 throw new ArgumentException("Debe haber al menos un ejemplar.", nameof(ejemplares));
 
+            var tituloLimpio = titulo.Trim();
+            if (tituloLimpio.Length > MaxTituloLength)
+                throw new ArgumentException($"El título no puede exceder {MaxTituloLength} caracteres.", nameof(titulo));
+
+            var autorLimpio = autor.Trim();
+            if (autorLimpio.Length > MaxAutorLength)
+                throw new ArgumentException($"El autor no puede exceder {MaxAutorLength} caracteres.", nameof(autor));
+
+            string? isbnLimpio = null;
+            if (!string.IsNullOrWhiteSpace(isbn))
+            {
+                isbnLimpio = isbn.Trim();
+                if (isbnLimpio.Length > MaxIsbnLength)
+                    throw new ArgumentException($"El ISBN no puede exceder {MaxIsbnLength} caracteres.", nameof(isbn));
+            }
+
+            string? ubicacionLimpia = null;
+            if (!string.IsNullOrWhiteSpace(ubicacion))
+            {
+                ubicacionLimpia = ubicacion.Trim();
+                if (ubicacionLimpia.Length > MaxUbicacionLength)
+                    throw new ArgumentException($"La ubicación no puede exceder {MaxUbicacionLength} caracteres.", nameof(ubicacion));
+            }
+
             return new Libro
             {
-                Titulo = titulo.Trim(),
-                Autor = autor.Trim(),
-                Isbn = string.IsNullOrWhiteSpace(isbn) ? null : isbn.Trim(),
-                Ubicacion = string.IsNullOrWhiteSpace(ubicacion) ? null : ubicacion.Trim(),
+                Titulo = tituloLimpio,
+                Autor = autorLimpio,
+                Isbn = isbnLimpio,
+                Ubicacion = ubicacionLimpia,
                 EjemplaresTotales = ejemplares,
                 EjemplaresDisponibles = ejemplares,
                 FechaPublicacion = fechaPublicacion
@@ -87,16 +116,53 @@ namespace SIGEBI.Domain.Entities
 
         public void ActualizarUbicacion(string? nueva)
         {
-            Ubicacion = string.IsNullOrWhiteSpace(nueva) ? null : nueva.Trim();
+            if (string.IsNullOrWhiteSpace(nueva))
+            {
+                Ubicacion = null;
+            }
+            else
+            {
+                var ubicacionLimpia = nueva.Trim();
+                if (ubicacionLimpia.Length > MaxUbicacionLength)
+                    throw new ArgumentException($"La ubicación no puede exceder {MaxUbicacionLength} caracteres.", nameof(nueva));
+
+                Ubicacion = ubicacionLimpia;
+            }
+
             Touch();
         }
 
         public void ActualizarDatos(string? titulo = null, string? autor = null, string? isbn = null, DateTime? fechaPublicacion = null)
         {
-            if (!string.IsNullOrWhiteSpace(titulo)) Titulo = titulo.Trim();
-            if (!string.IsNullOrWhiteSpace(autor)) Autor = autor.Trim();
-            if (!string.IsNullOrWhiteSpace(isbn)) Isbn = isbn.Trim();
-            if (fechaPublicacion.HasValue) FechaPublicacion = fechaPublicacion;
+            if (!string.IsNullOrWhiteSpace(titulo))
+            {
+                var tituloLimpio = titulo.Trim();
+                if (tituloLimpio.Length > MaxTituloLength)
+                    throw new ArgumentException($"El título no puede exceder {MaxTituloLength} caracteres.", nameof(titulo));
+                Titulo = tituloLimpio;
+            }
+
+            if (!string.IsNullOrWhiteSpace(autor))
+            {
+                var autorLimpio = autor.Trim();
+                if (autorLimpio.Length > MaxAutorLength)
+                    throw new ArgumentException($"El autor no puede exceder {MaxAutorLength} caracteres.", nameof(autor));
+                Autor = autorLimpio;
+            }
+
+            if (!string.IsNullOrWhiteSpace(isbn))
+            {
+                var isbnLimpio = isbn.Trim();
+                if (isbnLimpio.Length > MaxIsbnLength)
+                    throw new ArgumentException($"El ISBN no puede exceder {MaxIsbnLength} caracteres.", nameof(isbn));
+                Isbn = isbnLimpio;
+            }
+
+            if (fechaPublicacion.HasValue)
+            {
+                FechaPublicacion = fechaPublicacion;
+            }
+
             Touch();
         }
     }
