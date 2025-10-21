@@ -27,7 +27,8 @@ namespace SIGEBI.Persistence.Configurations
 
             builder.Property(n => n.Leida).IsRequired();
 
-            builder.Property(n => n.FechaLecturaUtc);
+            builder.Property(n => n.FechaLecturaUtc)
+                   .IsRequired(false);
 
             builder.Property(n => n.CreatedAtUtc).IsRequired();
             builder.Property(n => n.UpdatedAtUtc);
