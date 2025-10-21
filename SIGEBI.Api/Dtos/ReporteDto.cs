@@ -1,6 +1,10 @@
-﻿namespace SIGEBI.Api.Dtos;
+namespace SIGEBI.Api.Dtos;
 
-public class ReporteDto
-{
-    
-}
+public record ReporteDto(
+    int TotalUsuarios,
+    int UsuariosActivos,
+    int TotalLibros,
+    int LibrosDisponibles,
+    int PrestamosActivos,
+    int PrestamosVencidos,
+    int PenalizacionesActivas);
