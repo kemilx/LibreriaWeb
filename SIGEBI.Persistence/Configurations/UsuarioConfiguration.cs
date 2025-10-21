@@ -49,12 +49,11 @@ namespace SIGEBI.Persistence.Configurations
 
             builder.HasIndex(u => u.Email).IsUnique();
 
-            // Many-to-Many con Roles usando el backing field "_roles"
-            builder.Navigation("_roles")
-                   .UsePropertyAccessMode(PropertyAccessMode.Field);
-
-            builder.HasMany<Rol>("_roles")
-                   .WithMany()
+            // -------------------------------------------------------------
+            // Relación Many-to-Many con Roles usando el backing field "_roles"
+            // -------------------------------------------------------------
+            builder.HasMany(u => u.Roles)
+                   .WithMany() // usa .WithMany(r => r.Usuarios) si Rol tiene navegación inversa
                    .UsingEntity<Dictionary<string, object>>(
                         "UsuarioRoles",
                         right => right
@@ -75,7 +74,12 @@ namespace SIGEBI.Persistence.Configurations
                             join.HasIndex("UsuarioId");
                         });
 
-            // PrestamosIds: no se persiste (backing field interno).
+            // Indicar a EF que la navegación 'Roles' usa el campo privado '_roles'
+            builder.Navigation(u => u.Roles)
+                   .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            // EF Core < 8 no soporta listas de primitivos, así que ignoramos PrestamosIds
+            builder.Ignore(u => u.PrestamosIds);
         }
     }
 }

@@ -16,15 +16,17 @@ namespace SIGEBI.Persistence.Repositories
 
         public async Task<Usuario?> GetByIdAsync(Guid id, CancellationToken ct = default)
             => await _context.Usuarios
-                             .Include("_roles")
+                             .Include("_roles") // si tienes la navegación fuerte, usa .Include(u => u.Roles)
                              .FirstOrDefaultAsync(u => u.Id == id, ct);
 
         public async Task<Usuario?> GetByEmailAsync(string email, CancellationToken ct = default)
         {
+            // Normaliza/valida con tu VO (si es inválido, lanzará ArgumentException)
             var normalizedEmail = EmailAddress.Create(email).Value;
 
             return await _context.Usuarios
-                                 .FirstOrDefaultAsync(u => EF.Property<string>(u, "Email") == normalizedEmail, ct);
+                                 .AsNoTracking()
+                                 .FirstOrDefaultAsync(u => u.Email.Value == normalizedEmail, ct);
         }
 
         public async Task<bool> EmailExisteAsync(string email, CancellationToken ct = default)
@@ -32,7 +34,8 @@ namespace SIGEBI.Persistence.Repositories
             var normalizedEmail = EmailAddress.Create(email).Value;
 
             return await _context.Usuarios
-                                 .AnyAsync(u => EF.Property<string>(u, "Email") == normalizedEmail, ct);
+                                 .AsNoTracking()
+                                 .AnyAsync(u => u.Email.Value == normalizedEmail, ct);
         }
 
         public async Task AddAsync(Usuario usuario, CancellationToken ct = default)

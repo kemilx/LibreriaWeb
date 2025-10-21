@@ -1,4 +1,7 @@
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using SIGEBI.IOC;
+using SIGEBI.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
