@@ -23,16 +23,9 @@ namespace SIGEBI.Persistence.Repositories
         {
             var normalizedEmail = EmailAddress.Create(email);
 
-            var usuario = await _context.Usuarios
-                                        .AsNoTracking()
-                                        .Select(u => new
-                                        {
-                                            Usuario = u,
-                                            Email = EF.Property<string>(u, nameof(Usuario.Email))
-                                        })
-                                        .FirstOrDefaultAsync(x => x.Email == normalizedEmail.Value, ct);
-
-            return usuario?.Usuario;
+            return await _context.Usuarios
+                                 .AsNoTracking()
+                                 .FirstOrDefaultAsync(u => EF.Property<string>(u, nameof(Usuario.Email)) == normalizedEmail, ct);
         }
 
         public async Task<bool> EmailExisteAsync(string email, CancellationToken ct = default)
@@ -41,8 +34,7 @@ namespace SIGEBI.Persistence.Repositories
 
             return await _context.Usuarios
                                  .AsNoTracking()
-                                 .Select(u => EF.Property<string>(u, nameof(Usuario.Email)))
-                                 .AnyAsync(value => value == normalizedEmail.Value, ct);
+                                 .AnyAsync(u => EF.Property<string>(u, nameof(Usuario.Email)) == normalizedEmail, ct);
         }
 
         public async Task AddAsync(Usuario usuario, CancellationToken ct = default)
