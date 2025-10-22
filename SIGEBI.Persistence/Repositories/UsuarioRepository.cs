@@ -21,21 +21,20 @@ namespace SIGEBI.Persistence.Repositories
 
         public async Task<Usuario?> GetByEmailAsync(string email, CancellationToken ct = default)
         {
-            // Normaliza/valida con tu VO (si es inválido, lanzará ArgumentException)
-            var normalizedEmail = EmailAddress.Create(email).Value;
+            var normalizedEmail = EmailAddress.Create(email);
 
             return await _context.Usuarios
                                  .AsNoTracking()
-                                 .FirstOrDefaultAsync(u => u.Email.Value == normalizedEmail, ct);
+                                 .FirstOrDefaultAsync(u => u.Email.Equals(normalizedEmail), ct);
         }
 
         public async Task<bool> EmailExisteAsync(string email, CancellationToken ct = default)
         {
-            var normalizedEmail = EmailAddress.Create(email).Value;
+            var normalizedEmail = EmailAddress.Create(email);
 
             return await _context.Usuarios
                                  .AsNoTracking()
-                                 .AnyAsync(u => u.Email.Value == normalizedEmail, ct);
+                                 .AnyAsync(u => u.Email.Equals(normalizedEmail), ct);
         }
 
         public async Task AddAsync(Usuario usuario, CancellationToken ct = default)
