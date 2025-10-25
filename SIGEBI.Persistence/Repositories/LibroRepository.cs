@@ -25,19 +25,25 @@ namespace SIGEBI.Persistence.Repositories
 
         public async Task UpdateAsync(Libro libro, CancellationToken ct = default)
         {
-            _context.Libros.Update(libro);
+            if (_context.Entry(libro).State == EntityState.Detached)
+            {
+                _context.Libros.Attach(libro);
+            }
+
             await _context.SaveChangesAsync(ct);
         }
 
         public async Task<IReadOnlyList<Libro>> BuscarPorTituloAsync(string texto, CancellationToken ct = default)
             => await _context.Libros
-                             .Where(l => l.Titulo.Contains(texto))
+                             .AsNoTracking()
+                             .Where(l => EF.Functions.Like(l.Titulo, $"%{texto}%"))
                              .OrderBy(l => l.Titulo)
                              .ToListAsync(ct);
 
         public async Task<IReadOnlyList<Libro>> BuscarPorAutorAsync(string autor, CancellationToken ct = default)
             => await _context.Libros
-                             .Where(l => l.Autor.Contains(autor))
+                             .AsNoTracking()
+                             .Where(l => EF.Functions.Like(l.Autor, $"%{autor}%"))
                              .OrderBy(l => l.Autor)
                              .ToListAsync(ct);
 
