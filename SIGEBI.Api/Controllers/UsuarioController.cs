@@ -1,6 +1,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using SIGEBI.Api.Dtos;
+using SIGEBI.Domain.Base;
 using SIGEBI.Domain.Entities;
 using SIGEBI.Domain.Repository;
 using SIGEBI.Domain.ValueObjects;
@@ -33,28 +34,21 @@ public class UsuarioController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UsuarioDto>> Crear([FromBody] CrearUsuarioRequest request, CancellationToken ct)
     {
-        try
+        var emailVo = EmailAddress.Create(request.Email);
+        var existente = await _usuarioRepository.GetByEmailAsync(emailVo.Value, ct);
+        if (existente is not null)
         {
-            var emailVo = EmailAddress.Create(request.Email);
-            var existente = await _usuarioRepository.GetByEmailAsync(emailVo.Value, ct);
-            if (existente is not null)
-            {
-                return Conflict(new { message = "El correo electrónico ya está registrado." });
-            }
-
-            var usuario = Usuario.Create(
-                NombreCompleto.Create(request.Nombres, request.Apellidos),
-                emailVo,
-                request.Tipo);
-
-            await _usuarioRepository.AddAsync(usuario, ct);
-
-            return CreatedAtAction(nameof(GetById), new { id = usuario.Id }, Map(usuario));
+            return Conflict(new { message = "El correo electrónico ya está registrado." });
         }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+
+        var usuario = Usuario.Create(
+            NombreCompleto.Create(request.Nombres, request.Apellidos),
+            emailVo,
+            request.Tipo);
+
+        await _usuarioRepository.AddAsync(usuario, ct);
+
+        return CreatedAtAction(nameof(GetById), new { id = usuario.Id }, Map(usuario));
     }
 
     [HttpPut("{id:guid}")]
@@ -63,39 +57,32 @@ public class UsuarioController : ControllerBase
         var usuario = await _usuarioRepository.GetByIdAsync(id, ct);
         if (usuario is null) return NotFound();
 
-        try
+        if (!string.IsNullOrWhiteSpace(request.Email))
         {
-            if (!string.IsNullOrWhiteSpace(request.Email))
+            var emailVo = EmailAddress.Create(request.Email);
+            if (!emailVo.Value.Equals(usuario.Email.Value, StringComparison.OrdinalIgnoreCase))
             {
-                var emailVo = EmailAddress.Create(request.Email);
-                if (!emailVo.Value.Equals(usuario.Email.Value, StringComparison.OrdinalIgnoreCase))
+                var existente = await _usuarioRepository.GetByEmailAsync(emailVo.Value, ct);
+                if (existente is not null && existente.Id != usuario.Id)
                 {
-                    var existente = await _usuarioRepository.GetByEmailAsync(emailVo.Value, ct);
-                    if (existente is not null && existente.Id != usuario.Id)
-                    {
-                        return Conflict(new { message = "El correo electrónico ya está en uso." });
-                    }
-
-                    usuario.CambiarEmail(emailVo);
+                    return Conflict(new { message = "El correo electrónico ya está en uso." });
                 }
-            }
 
-            if (!string.IsNullOrWhiteSpace(request.Nombres) && !string.IsNullOrWhiteSpace(request.Apellidos))
-            {
-                usuario.CambiarNombre(NombreCompleto.Create(request.Nombres, request.Apellidos));
+                usuario.CambiarEmail(emailVo);
             }
-            else if (!string.IsNullOrWhiteSpace(request.Nombres) || !string.IsNullOrWhiteSpace(request.Apellidos))
-            {
-                return BadRequest(new { message = "Debe indicar nombres y apellidos para actualizar el nombre completo." });
-            }
-
-            await _usuarioRepository.UpdateAsync(usuario, ct);
-            return Ok(Map(usuario));
         }
-        catch (ArgumentException ex)
+
+        if (!string.IsNullOrWhiteSpace(request.Nombres) && !string.IsNullOrWhiteSpace(request.Apellidos))
         {
-            return BadRequest(new { message = ex.Message });
+            usuario.CambiarNombre(NombreCompleto.Create(request.Nombres, request.Apellidos));
         }
+        else if (!string.IsNullOrWhiteSpace(request.Nombres) || !string.IsNullOrWhiteSpace(request.Apellidos))
+        {
+            throw new DomainException("Debe indicar nombres y apellidos para actualizar el nombre completo.", nameof(request.Nombres));
+        }
+
+        await _usuarioRepository.UpdateAsync(usuario, ct);
+        return Ok(Map(usuario));
     }
 
     [HttpPost("{id:guid}/desactivar")]
@@ -125,7 +112,7 @@ public class UsuarioController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Nombre))
         {
-            return BadRequest(new { message = "El nombre del rol es obligatorio." });
+            throw new DomainException("El nombre del rol es obligatorio.", nameof(request.Nombre));
         }
 
         var usuario = await _usuarioRepository.GetByIdAsync(id, ct);
@@ -134,23 +121,16 @@ public class UsuarioController : ControllerBase
         var rolNombre = request.Nombre.Trim();
         Rol? rol;
 
-        try
+        rol = await _rolRepository.GetByNombreAsync(rolNombre, ct);
+        if (rol is null)
         {
-            rol = await _rolRepository.GetByNombreAsync(rolNombre, ct);
-            if (rol is null)
-            {
-                rol = Rol.Create(rolNombre, request.Descripcion);
-                await _rolRepository.AddAsync(rol, ct);
-            }
-            else if (!string.IsNullOrWhiteSpace(request.Descripcion))
-            {
-                rol.ActualizarDescripcion(request.Descripcion);
-                await _rolRepository.UpdateAsync(rol, ct);
-            }
+            rol = Rol.Create(rolNombre, request.Descripcion);
+            await _rolRepository.AddAsync(rol, ct);
         }
-        catch (ArgumentException ex)
+        else if (!string.IsNullOrWhiteSpace(request.Descripcion))
         {
-            return BadRequest(new { message = ex.Message });
+            rol.ActualizarDescripcion(request.Descripcion);
+            await _rolRepository.UpdateAsync(rol, ct);
         }
 
         usuario.AsignarRol(rol);
@@ -164,7 +144,7 @@ public class UsuarioController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(nombre))
         {
-            return BadRequest(new { message = "Debe indicar el nombre del rol a revocar." });
+            throw new DomainException("Debe indicar el nombre del rol a revocar.", nameof(nombre));
         }
 
         var usuario = await _usuarioRepository.GetByIdAsync(id, ct);

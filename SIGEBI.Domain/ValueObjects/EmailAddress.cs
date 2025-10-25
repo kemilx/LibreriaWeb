@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Text.RegularExpressions;
+using SIGEBI.Domain.Base;
 
 namespace SIGEBI.Domain.ValueObjects
 {
@@ -18,15 +19,15 @@ namespace SIGEBI.Domain.ValueObjects
         public static EmailAddress Create(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException("El email no puede estar vacío.", nameof(value));
+                throw new DomainException("El email no puede estar vacío.", nameof(value));
 
             value = value.Trim();
 
             if (value.Length > MaxLength)
-                throw new ArgumentException($"El email no puede exceder {MaxLength} caracteres.", nameof(value));
+                throw new DomainException($"El email no puede exceder {MaxLength} caracteres.", nameof(value));
 
             if (!Pattern.IsMatch(value))
-                throw new ArgumentException("Formato de email inválido.", nameof(value));
+                throw new DomainException("Formato de email inválido.", nameof(value));
 
             return new EmailAddress(value);
         }

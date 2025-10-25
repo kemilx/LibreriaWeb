@@ -69,6 +69,24 @@ namespace SIGEBI.Domain.Entities
             }
         }
 
+        public void AsegurarPuedeSolicitarPrestamo(bool tienePenalizacionesActivas, int prestamosActivos, int limitePrestamosActivos)
+        {
+            if (!Activo)
+            {
+                throw new DomainException("El usuario está inactivo y no puede solicitar préstamos.", nameof(Activo));
+            }
+
+            if (tienePenalizacionesActivas)
+            {
+                throw new DomainException("El usuario posee penalizaciones activas y no puede solicitar nuevos préstamos.", "Penalizaciones");
+            }
+
+            if (prestamosActivos >= limitePrestamosActivos)
+            {
+                throw new DomainException($"El usuario alcanzó el límite de {limitePrestamosActivos} préstamos activos.", "PrestamosActivos");
+            }
+        }
+
         public void Desactivar()
         {
             if (!Activo) return;

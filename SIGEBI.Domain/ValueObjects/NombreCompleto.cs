@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using SIGEBI.Domain.Base;
 
 namespace SIGEBI.Domain.ValueObjects
 {
@@ -18,18 +19,8 @@ namespace SIGEBI.Domain.ValueObjects
 
         public static NombreCompleto Create(string nombres, string apellidos)
         {
-            if (string.IsNullOrWhiteSpace(nombres))
-                throw new ArgumentException("Nombres requeridos.", nameof(nombres));
-            if (string.IsNullOrWhiteSpace(apellidos))
-                throw new ArgumentException("Apellidos requeridos.", nameof(apellidos));
-
-            var nombresLimpios = nombres.Trim();
-            var apellidosLimpios = apellidos.Trim();
-
-            if (nombresLimpios.Length > MaxNombresLength)
-                throw new ArgumentException($"Los nombres no pueden exceder {MaxNombresLength} caracteres.", nameof(nombres));
-            if (apellidosLimpios.Length > MaxApellidosLength)
-                throw new ArgumentException($"Los apellidos no pueden exceder {MaxApellidosLength} caracteres.", nameof(apellidos));
+            var nombresLimpios = DomainValidation.Required(nombres, MaxNombresLength, nameof(nombres));
+            var apellidosLimpios = DomainValidation.Required(apellidos, MaxApellidosLength, nameof(apellidos));
 
             return new NombreCompleto(nombresLimpios, apellidosLimpios);
         }

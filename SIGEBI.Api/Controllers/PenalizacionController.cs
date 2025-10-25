@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using SIGEBI.Api.Dtos;
+using SIGEBI.Domain.Base;
 using SIGEBI.Domain.Entities;
 using SIGEBI.Domain.Repository;
 
@@ -61,32 +62,25 @@ public class PenalizacionController : ControllerBase
         var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioId, ct);
         if (usuario is null) return NotFound(new { message = "El usuario indicado no existe." });
 
-        try
+        if (request.PrestamoId.HasValue)
         {
-            if (request.PrestamoId.HasValue)
+            var prestamo = await _prestamoRepository.GetByIdAsync(request.PrestamoId.Value, ct);
+            if (prestamo is null)
             {
-                var prestamo = await _prestamoRepository.GetByIdAsync(request.PrestamoId.Value, ct);
-                if (prestamo is null)
-                {
-                    return NotFound(new { message = "El préstamo indicado no existe." });
-                }
+                return NotFound(new { message = "El préstamo indicado no existe." });
             }
-
-            var penalizacion = Penalizacion.Generar(
-                request.UsuarioId,
-                request.PrestamoId,
-                request.Monto,
-                request.FechaInicioUtc,
-                request.FechaFinUtc,
-                request.Motivo);
-
-            await _penalizacionRepository.AddAsync(penalizacion, ct);
-            return CreatedAtAction(nameof(ObtenerActivas), new { usuarioId = request.UsuarioId }, Map(penalizacion));
         }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+
+        var penalizacion = Penalizacion.Generar(
+            request.UsuarioId,
+            request.PrestamoId,
+            request.Monto,
+            request.FechaInicioUtc,
+            request.FechaFinUtc,
+            request.Motivo);
+
+        await _penalizacionRepository.AddAsync(penalizacion, ct);
+        return CreatedAtAction(nameof(ObtenerActivas), new { usuarioId = request.UsuarioId }, Map(penalizacion));
     }
 
     [HttpPost("{id:guid}/cerrar")]
@@ -94,7 +88,7 @@ public class PenalizacionController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Razon))
         {
-            return BadRequest(new { message = "Debe indicar la razón del cierre." });
+            throw new DomainException("Debe indicar la razón del cierre.", nameof(request.Razon));
         }
 
         var penalizacion = await _penalizacionRepository.GetByIdAsync(id, ct);
@@ -108,21 +102,10 @@ public class PenalizacionController : ControllerBase
         if (!penalizacion.Activa)
         {
             await _penalizacionRepository.UpdateAsync(penalizacion, ct);
-            return BadRequest(new { message = "La penalización ya se encuentra cerrada." });
+            throw new DomainException("La penalización ya se encuentra cerrada.", nameof(penalizacion.Activa));
         }
 
-        try
-        {
-            penalizacion.CerrarAnticipadamente(request.Razon.Trim());
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        penalizacion.CerrarAnticipadamente(request.Razon.Trim());
 
         await _penalizacionRepository.UpdateAsync(penalizacion, ct);
         return Ok(Map(penalizacion));

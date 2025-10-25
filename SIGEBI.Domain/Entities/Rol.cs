@@ -1,4 +1,3 @@
-﻿using System;
 using SIGEBI.Domain.Base;
 
 namespace SIGEBI.Domain.Entities
@@ -15,19 +14,12 @@ namespace SIGEBI.Domain.Entities
 
         public static Rol Create(string nombre, string? descripcion = null)
         {
-            if (string.IsNullOrWhiteSpace(nombre))
-                throw new ArgumentException("El nombre del rol es obligatorio.", nameof(nombre));
-
-            var nombreLimpio = nombre.Trim();
-            if (nombreLimpio.Length > MaxNombreLength)
-                throw new ArgumentException($"El nombre del rol no puede exceder {MaxNombreLength} caracteres.", nameof(nombre));
+            var nombreLimpio = DomainValidation.Required(nombre, MaxNombreLength, nameof(nombre));
 
             string? descripcionLimpia = null;
             if (!string.IsNullOrWhiteSpace(descripcion))
             {
-                descripcionLimpia = descripcion.Trim();
-                if (descripcionLimpia.Length > MaxDescripcionLength)
-                    throw new ArgumentException($"La descripción del rol no puede exceder {MaxDescripcionLength} caracteres.", nameof(descripcion));
+                descripcionLimpia = DomainValidation.Optional(descripcion, MaxDescripcionLength, nameof(descripcion));
             }
 
             return new Rol
@@ -45,11 +37,7 @@ namespace SIGEBI.Domain.Entities
             }
             else
             {
-                var descripcionLimpia = descripcion.Trim();
-                if (descripcionLimpia.Length > MaxDescripcionLength)
-                    throw new ArgumentException($"La descripción del rol no puede exceder {MaxDescripcionLength} caracteres.", nameof(descripcion));
-
-                Descripcion = descripcionLimpia;
+                Descripcion = DomainValidation.Optional(descripcion, MaxDescripcionLength, nameof(descripcion));
             }
             Touch();
         }

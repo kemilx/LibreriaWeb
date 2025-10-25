@@ -25,16 +25,9 @@ public class NotificacionController : ControllerBase
         var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioId, ct);
         if (usuario is null) return NotFound(new { message = "El usuario indicado no existe." });
 
-        try
-        {
-            var notificacion = Notificacion.Crear(request.UsuarioId, request.Titulo, request.Mensaje, request.Tipo);
-            await _notificacionRepository.AddAsync(notificacion, ct);
-            return CreatedAtAction(nameof(ObtenerPendientes), new { usuarioId = request.UsuarioId }, Map(notificacion));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        var notificacion = Notificacion.Crear(request.UsuarioId, request.Titulo, request.Mensaje, request.Tipo);
+        await _notificacionRepository.AddAsync(notificacion, ct);
+        return CreatedAtAction(nameof(ObtenerPendientes), new { usuarioId = request.UsuarioId }, Map(notificacion));
     }
 
     [HttpGet("usuario/{usuarioId:guid}/pendientes")]
