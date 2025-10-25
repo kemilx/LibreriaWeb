@@ -1,6 +1,7 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using SIGEBI.Api.Dtos;
+using SIGEBI.Domain.Base;
 using SIGEBI.Domain.Entities;
 using SIGEBI.Domain.Repository;
 using SIGEBI.Domain.ValueObjects;
@@ -67,13 +68,33 @@ public class PrestamoController : ControllerBase
 
         try
         {
+            if (!libro.DisponibleParaPrestamo())
+            {
+                return BadRequest(new { message = "El libro no tiene ejemplares disponibles para préstamo." });
+            }
+
             var periodo = PeriodoPrestamo.Create(request.FechaInicioUtc, request.FechaFinUtc);
             var prestamo = Prestamo.Solicitar(request.LibroId, request.UsuarioId, periodo);
 
+            libro.MarcarPrestado();
+            prestamo.Activar();
+            usuario.RegistrarPrestamo(prestamo.Id);
+
             await _prestamoRepository.AddAsync(prestamo, ct);
+            await _libroRepository.UpdateAsync(libro, ct);
+            await _usuarioRepository.UpdateAsync(usuario, ct);
+
             return CreatedAtAction(nameof(ObtenerPorId), new { id = prestamo.Id }, Map(prestamo));
         }
+        catch (DomainException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
