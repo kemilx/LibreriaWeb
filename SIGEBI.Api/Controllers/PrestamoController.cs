@@ -71,21 +71,38 @@ public class PrestamoController : ControllerBase
         var usuario = await _usuarioRepository.GetByIdAsync(request.UsuarioId, ct);
         if (usuario is null) return NotFound(new { message = "El usuario indicado no existe." });
 
-        var penalizacionesActivas = await _penalizacionRepository.ObtenerActivasPorUsuarioAsync(usuario.Id, ct);
-        var prestamosActivos = await _prestamoRepository.ContarActivosPorUsuarioAsync(usuario.Id, ct);
+        try
+        {
+            if (!libro.DisponibleParaPrestamo())
+            {
+                return BadRequest(new { message = "El libro no tiene ejemplares disponibles para préstamo." });
+            }
 
-        usuario.AsegurarPuedeSolicitarPrestamo(penalizacionesActivas.Any(), prestamosActivos, MaxPrestamosActivosPorUsuario);
+            var periodo = PeriodoPrestamo.Create(request.FechaInicioUtc, request.FechaFinUtc);
+            var prestamo = Prestamo.Solicitar(request.LibroId, request.UsuarioId, periodo);
 
-        var periodo = PeriodoPrestamo.Create(request.FechaInicioUtc, request.FechaFinUtc);
-        var prestamo = Prestamo.Solicitar(request.LibroId, request.UsuarioId, periodo);
+            libro.MarcarPrestado();
+            prestamo.Activar();
+            usuario.RegistrarPrestamo(prestamo.Id);
 
-        libro.MarcarPrestado();
-        prestamo.Activar();
-        usuario.RegistrarPrestamo(prestamo.Id);
+            await _prestamoRepository.AddAsync(prestamo, ct);
+            await _libroRepository.UpdateAsync(libro, ct);
+            await _usuarioRepository.UpdateAsync(usuario, ct);
 
-        await _prestamoRepository.CrearAsync(prestamo, libro, usuario, ct);
-
-        return CreatedAtAction(nameof(ObtenerPorId), new { id = prestamo.Id }, Map(prestamo));
+            return CreatedAtAction(nameof(ObtenerPorId), new { id = prestamo.Id }, Map(prestamo));
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPost("{id:guid}/activar")]
@@ -152,11 +169,28 @@ public class PrestamoController : ControllerBase
             }
         }
 
+        try
+        {
+            prestamo.Cancelar(request.Motivo.Trim());
+
+            if (estabaActivo)
+            {
+                libro!.MarcarDevuelto();
+            }
+        }
+
         prestamo.Cancelar(request.Motivo.Trim());
 
         if (estabaActivo)
         {
             libro!.MarcarDevuelto();
+        }
+
+        await _prestamoRepository.UpdateAsync(prestamo, ct);
+
+        if (estabaActivo)
+        {
+            await _libroRepository.UpdateAsync(libro!, ct);
         }
 
         await _prestamoRepository.UpdateAsync(prestamo, ct);
