@@ -24,36 +24,15 @@ namespace SIGEBI.Domain.Entities
 
         public static Libro Create(string titulo, string autor, int ejemplares, string? isbn = null, string? ubicacion = null, DateTime? fechaPublicacion = null)
         {
-            if (string.IsNullOrWhiteSpace(titulo))
-                throw new ArgumentException("El título es obligatorio.", nameof(titulo));
-            if (string.IsNullOrWhiteSpace(autor))
-                throw new ArgumentException("El autor es obligatorio.", nameof(autor));
             if (ejemplares <= 0)
-                throw new ArgumentException("Debe haber al menos un ejemplar.", nameof(ejemplares));
-
-            var tituloLimpio = titulo.Trim();
-            if (tituloLimpio.Length > MaxTituloLength)
-                throw new ArgumentException($"El título no puede exceder {MaxTituloLength} caracteres.", nameof(titulo));
-
-            var autorLimpio = autor.Trim();
-            if (autorLimpio.Length > MaxAutorLength)
-                throw new ArgumentException($"El autor no puede exceder {MaxAutorLength} caracteres.", nameof(autor));
-
-            string? isbnLimpio = null;
-            if (!string.IsNullOrWhiteSpace(isbn))
             {
-                isbnLimpio = isbn.Trim();
-                if (isbnLimpio.Length > MaxIsbnLength)
-                    throw new ArgumentException($"El ISBN no puede exceder {MaxIsbnLength} caracteres.", nameof(isbn));
+                throw new DomainException("Debe haber al menos un ejemplar.", nameof(ejemplares));
             }
 
-            string? ubicacionLimpia = null;
-            if (!string.IsNullOrWhiteSpace(ubicacion))
-            {
-                ubicacionLimpia = ubicacion.Trim();
-                if (ubicacionLimpia.Length > MaxUbicacionLength)
-                    throw new ArgumentException($"La ubicación no puede exceder {MaxUbicacionLength} caracteres.", nameof(ubicacion));
-            }
+            var tituloLimpio = DomainValidation.Required(titulo, MaxTituloLength, "título");
+            var autorLimpio = DomainValidation.Required(autor, MaxAutorLength, "autor");
+            var isbnLimpio = DomainValidation.Optional(isbn, MaxIsbnLength, "ISBN");
+            var ubicacionLimpia = DomainValidation.Optional(ubicacion, MaxUbicacionLength, "ubicación");
 
             return new Libro
             {
@@ -73,7 +52,7 @@ namespace SIGEBI.Domain.Entities
         public void MarcarPrestado()
         {
             if (!DisponibleParaPrestamo())
-                throw new InvalidOperationException("El libro no está disponible para préstamo.");
+                throw new DomainException("El libro no está disponible para préstamo.");
 
             EjemplaresDisponibles--;
             if (EjemplaresDisponibles == 0)
@@ -85,7 +64,7 @@ namespace SIGEBI.Domain.Entities
         public void MarcarDevuelto()
         {
             if (EjemplaresDisponibles >= EjemplaresTotales)
-                throw new InvalidOperationException("No hay ejemplares prestados para devolver.");
+                throw new DomainException("No hay ejemplares prestados para devolver.");
 
             EjemplaresDisponibles++;
             if (Estado == EstadoLibro.Prestado)
@@ -97,7 +76,7 @@ namespace SIGEBI.Domain.Entities
         public void MarcarReservado()
         {
             if (Estado != EstadoLibro.Disponible)
-                throw new InvalidOperationException("Solo se puede reservar un libro disponible.");
+                throw new DomainException("Solo se puede reservar un libro disponible.");
             Estado = EstadoLibro.Reservado;
             Touch();
         }
@@ -116,18 +95,7 @@ namespace SIGEBI.Domain.Entities
 
         public void ActualizarUbicacion(string? nueva)
         {
-            if (string.IsNullOrWhiteSpace(nueva))
-            {
-                Ubicacion = null;
-            }
-            else
-            {
-                var ubicacionLimpia = nueva.Trim();
-                if (ubicacionLimpia.Length > MaxUbicacionLength)
-                    throw new ArgumentException($"La ubicación no puede exceder {MaxUbicacionLength} caracteres.", nameof(nueva));
-
-                Ubicacion = ubicacionLimpia;
-            }
+            Ubicacion = DomainValidation.Optional(nueva, MaxUbicacionLength, "ubicación");
 
             Touch();
         }
@@ -136,26 +104,17 @@ namespace SIGEBI.Domain.Entities
         {
             if (!string.IsNullOrWhiteSpace(titulo))
             {
-                var tituloLimpio = titulo.Trim();
-                if (tituloLimpio.Length > MaxTituloLength)
-                    throw new ArgumentException($"El título no puede exceder {MaxTituloLength} caracteres.", nameof(titulo));
-                Titulo = tituloLimpio;
+                Titulo = DomainValidation.Required(titulo, MaxTituloLength, "título");
             }
 
             if (!string.IsNullOrWhiteSpace(autor))
             {
-                var autorLimpio = autor.Trim();
-                if (autorLimpio.Length > MaxAutorLength)
-                    throw new ArgumentException($"El autor no puede exceder {MaxAutorLength} caracteres.", nameof(autor));
-                Autor = autorLimpio;
+                Autor = DomainValidation.Required(autor, MaxAutorLength, "autor");
             }
 
             if (!string.IsNullOrWhiteSpace(isbn))
             {
-                var isbnLimpio = isbn.Trim();
-                if (isbnLimpio.Length > MaxIsbnLength)
-                    throw new ArgumentException($"El ISBN no puede exceder {MaxIsbnLength} caracteres.", nameof(isbn));
-                Isbn = isbnLimpio;
+                Isbn = DomainValidation.Required(isbn, MaxIsbnLength, "ISBN");
             }
 
             if (fechaPublicacion.HasValue)
