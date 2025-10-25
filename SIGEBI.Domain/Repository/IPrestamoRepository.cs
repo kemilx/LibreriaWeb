@@ -11,6 +11,7 @@ namespace SIGEBI.Domain.Repository
     {
         Task<Prestamo?> GetByIdAsync(Guid id, CancellationToken ct = default);
         Task AddAsync(Prestamo prestamo, CancellationToken ct = default);
+        Task CrearAsync(Prestamo prestamo, Libro libro, Usuario usuario, CancellationToken ct = default);
         Task UpdateAsync(Prestamo prestamo, CancellationToken ct = default);
         Task<IReadOnlyList<Prestamo>> ObtenerPorUsuarioAsync(Guid usuarioId, CancellationToken ct = default);
         Task<IReadOnlyList<Prestamo>> ObtenerActivosPorLibroAsync(Guid libroId, CancellationToken ct = default);

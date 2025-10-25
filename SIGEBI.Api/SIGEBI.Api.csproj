@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\SIGEBI.Application\SIGEBI.Application.csproj" />
     <ProjectReference Include="..\SIGEBI.Domain\SIGEBI.Domain.csproj" />
     <ProjectReference Include="..\SIGEBI.Persistence\SIGEBI.Persistence.csproj" />
     <ProjectReference Include="..\SIGEBI.IOC\SIGEBI.IOC.csproj" />
