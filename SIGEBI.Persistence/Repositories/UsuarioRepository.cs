@@ -16,25 +16,24 @@ namespace SIGEBI.Persistence.Repositories
 
         public async Task<Usuario?> GetByIdAsync(Guid id, CancellationToken ct = default)
             => await _context.Usuarios
-                             .Include("_roles") // si tienes la navegación fuerte, usa .Include(u => u.Roles)
+                             .Include(u => u.Roles) // mejor que el string "_roles"
                              .FirstOrDefaultAsync(u => u.Id == id, ct);
 
+        // Opción A (recomendada): comparar VO con VO (ya tienes HasConversion)
         public async Task<Usuario?> GetByEmailAsync(string email, CancellationToken ct = default)
         {
-            var normalizedEmail = EmailAddress.Create(email).Value;
-
+            var emailVO = EmailAddress.Create(email);
             return await _context.Usuarios
                                  .AsNoTracking()
-                                 .FirstOrDefaultAsync(u => EF.Property<string>(u, nameof(Usuario.Email)) == normalizedEmail, ct);
+                                 .FirstOrDefaultAsync(u => u.Email == emailVO, ct);
         }
 
         public async Task<bool> EmailExisteAsync(string email, CancellationToken ct = default)
         {
-            var normalizedEmail = EmailAddress.Create(email).Value;
-
+            var emailVO = EmailAddress.Create(email);
             return await _context.Usuarios
                                  .AsNoTracking()
-                                 .AnyAsync(u => EF.Property<string>(u, nameof(Usuario.Email)) == normalizedEmail, ct);
+                                 .AnyAsync(u => u.Email == emailVO, ct);
         }
 
         public async Task AddAsync(Usuario usuario, CancellationToken ct = default)
