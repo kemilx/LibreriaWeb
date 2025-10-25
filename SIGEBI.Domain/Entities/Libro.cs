@@ -47,7 +47,7 @@ namespace SIGEBI.Domain.Entities
         }
 
         public bool DisponibleParaPrestamo() =>
-            Estado == EstadoLibro.Disponible && EjemplaresDisponibles > 0;
+            EjemplaresDisponibles > 0 && Estado == EstadoLibro.Disponible;
 
         public void MarcarPrestado()
         {
@@ -60,6 +60,7 @@ namespace SIGEBI.Domain.Entities
                 Estado = EstadoLibro.Prestado;
             }
 
+            AjustarEstadoSegunDisponibilidad();
             Touch();
         }
 
@@ -75,11 +76,21 @@ namespace SIGEBI.Domain.Entities
                 Estado = EstadoLibro.Disponible;
             }
 
+            AjustarEstadoSegunDisponibilidad();
             Touch();
         }
 
         public void MarcarReservado()
         {
+            if (Estado == EstadoLibro.Reservado)
+                return;
+
+            if (Estado is EstadoLibro.Dañado or EstadoLibro.Inactivo)
+                throw new DomainException("El libro no puede reservarse en su estado actual.", nameof(Estado));
+
+            if (EjemplaresDisponibles <= 0)
+                throw new DomainException("No hay ejemplares disponibles para reservar.", nameof(EjemplaresDisponibles));
+
             if (Estado != EstadoLibro.Disponible)
                 throw new DomainException("Solo se puede reservar un libro disponible.");
             Estado = EstadoLibro.Reservado;
@@ -88,17 +99,23 @@ namespace SIGEBI.Domain.Entities
 
         public void MarcarDañado()
         {
+            if (EjemplaresDisponibles != EjemplaresTotales)
+                throw new DomainException("No es posible marcar el libro como dañado mientras existan préstamos activos.");
+
             Estado = EstadoLibro.Dañado;
             Touch();
         }
 
         public void MarcarInactivo()
         {
+            if (EjemplaresDisponibles != EjemplaresTotales)
+                throw new DomainException("No es posible marcar el libro como inactivo mientras existan préstamos activos.");
+
             Estado = EstadoLibro.Inactivo;
             Touch();
         }
 
-        public void ActualizarUbicacion(string? nueva)
+        public void RestaurarDisponibilidad()
         {
             Ubicacion = DomainValidation.Optional(nueva, MaxUbicacionLength, "ubicación");
 
@@ -128,6 +145,23 @@ namespace SIGEBI.Domain.Entities
             }
 
             Touch();
+        }
+
+        private void AjustarEstadoSegunDisponibilidad()
+        {
+            if (Estado is EstadoLibro.Dañado or EstadoLibro.Inactivo)
+            {
+                return;
+            }
+
+            if (EjemplaresDisponibles == 0)
+            {
+                Estado = EstadoLibro.Prestado;
+            }
+            else if (Estado != EstadoLibro.Reservado)
+            {
+                Estado = EstadoLibro.Disponible;
+            }
         }
     }
 }
