@@ -55,8 +55,10 @@ namespace SIGEBI.Domain.Entities
                 throw new DomainException("El libro no está disponible para préstamo.");
 
             EjemplaresDisponibles--;
-            if (EjemplaresDisponibles == 0)
+            if (EjemplaresDisponibles < EjemplaresTotales)
+            {
                 Estado = EstadoLibro.Prestado;
+            }
 
             Touch();
         }
@@ -67,8 +69,11 @@ namespace SIGEBI.Domain.Entities
                 throw new DomainException("No hay ejemplares prestados para devolver.");
 
             EjemplaresDisponibles++;
-            if (Estado == EstadoLibro.Prestado)
+
+            if (EjemplaresDisponibles == EjemplaresTotales)
+            {
                 Estado = EstadoLibro.Disponible;
+            }
 
             Touch();
         }
