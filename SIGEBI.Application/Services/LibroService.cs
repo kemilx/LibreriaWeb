@@ -88,18 +88,19 @@ public sealed class LibroService : ILibroService
             case EstadoLibro.Inactivo:
                 libro.MarcarInactivo();
                 break;
+            case EstadoLibro.Prestado:
+                libro.MarcarPrestado();
+                break;
             case EstadoLibro.Disponible:
-                if (libro.Estado == EstadoLibro.Reservado)
+                if (libro.EjemplaresDisponibles < libro.EjemplaresTotales)
                 {
-                    libro.LiberarReserva();
+                    libro.MarcarDevuelto();
                 }
-                else
+                else if (libro.Estado != EstadoLibro.Disponible)
                 {
-                    libro.RestaurarDisponibilidad();
+                    throw new DomainException("No es posible marcar como disponible sin ejemplares prestados.");
                 }
                 break;
-            case EstadoLibro.Prestado:
-                throw new DomainException("El estado 'Prestado' se gestiona automáticamente al registrar préstamos.");
             default:
                 throw new DomainException("Estado no soportado para el libro.");
         }

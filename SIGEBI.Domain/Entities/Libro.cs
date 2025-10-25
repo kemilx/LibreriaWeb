@@ -51,16 +51,14 @@ namespace SIGEBI.Domain.Entities
 
         public void MarcarPrestado()
         {
-            if (EjemplaresDisponibles <= 0)
-                throw new DomainException("No hay ejemplares disponibles para préstamo.", nameof(EjemplaresDisponibles));
-
-            if (Estado is EstadoLibro.Dañado or EstadoLibro.Inactivo)
-                throw new DomainException("El libro no puede prestarse en su estado actual.", nameof(Estado));
-
-            if (Estado == EstadoLibro.Reservado)
-                throw new DomainException("El libro está reservado y no puede prestarse a otro usuario.", nameof(Estado));
+            if (!DisponibleParaPrestamo())
+                throw new DomainException("El libro no está disponible para préstamo.");
 
             EjemplaresDisponibles--;
+            if (EjemplaresDisponibles < EjemplaresTotales)
+            {
+                Estado = EstadoLibro.Prestado;
+            }
 
             AjustarEstadoSegunDisponibilidad();
             Touch();
@@ -72,6 +70,11 @@ namespace SIGEBI.Domain.Entities
                 throw new DomainException("No hay ejemplares prestados para devolver.");
 
             EjemplaresDisponibles++;
+
+            if (EjemplaresDisponibles == EjemplaresTotales)
+            {
+                Estado = EstadoLibro.Disponible;
+            }
 
             AjustarEstadoSegunDisponibilidad();
             Touch();
@@ -89,8 +92,7 @@ namespace SIGEBI.Domain.Entities
                 throw new DomainException("No hay ejemplares disponibles para reservar.", nameof(EjemplaresDisponibles));
 
             if (Estado != EstadoLibro.Disponible)
-                throw new DomainException("Solo se puede reservar un libro disponible.", nameof(Estado));
-
+                throw new DomainException("Solo se puede reservar un libro disponible.");
             Estado = EstadoLibro.Reservado;
             Touch();
         }
@@ -114,27 +116,6 @@ namespace SIGEBI.Domain.Entities
         }
 
         public void RestaurarDisponibilidad()
-        {
-            if (EjemplaresDisponibles <= 0)
-                throw new DomainException("No hay ejemplares disponibles para marcar el libro como disponible.", nameof(EjemplaresDisponibles));
-
-            Estado = EstadoLibro.Disponible;
-            Touch();
-        }
-
-        public void LiberarReserva()
-        {
-            if (Estado != EstadoLibro.Reservado)
-                throw new DomainException("El libro no está reservado.", nameof(Estado));
-
-            if (EjemplaresDisponibles <= 0)
-                throw new DomainException("No hay ejemplares disponibles para liberar la reserva.", nameof(EjemplaresDisponibles));
-
-            Estado = EstadoLibro.Disponible;
-            Touch();
-        }
-
-        public void ActualizarUbicacion(string? nueva)
         {
             Ubicacion = DomainValidation.Optional(nueva, MaxUbicacionLength, "ubicación");
 

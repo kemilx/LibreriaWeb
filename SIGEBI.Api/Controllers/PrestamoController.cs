@@ -80,7 +80,9 @@ public class PrestamoController : ControllerBase
             prestamo.Activar();
             usuario.RegistrarPrestamo(prestamo.Id);
 
-            await _prestamoRepository.CrearAsync(prestamo, libro, usuario, ct);
+            await _prestamoRepository.AddAsync(prestamo, ct);
+            await _libroRepository.UpdateAsync(libro, ct);
+            await _usuarioRepository.UpdateAsync(usuario, ct);
 
             return CreatedAtAction(nameof(ObtenerPorId), new { id = prestamo.Id }, Map(prestamo));
         }
