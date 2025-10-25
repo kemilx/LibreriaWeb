@@ -23,6 +23,38 @@ namespace SIGEBI.Persistence.Repositories
             await _context.SaveChangesAsync(ct);
         }
 
+        public async Task CrearAsync(Prestamo prestamo, Libro libro, Usuario usuario, CancellationToken ct = default)
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(ct);
+
+            try
+            {
+                if (_context.Entry(libro).State == EntityState.Detached)
+                {
+                    _context.Libros.Attach(libro);
+                }
+
+                _context.Entry(libro).State = EntityState.Modified;
+
+                if (_context.Entry(usuario).State == EntityState.Detached)
+                {
+                    _context.Usuarios.Attach(usuario);
+                }
+
+                _context.Entry(usuario).State = EntityState.Modified;
+
+                await _context.Prestamos.AddAsync(prestamo, ct);
+                await _context.SaveChangesAsync(ct);
+
+                await transaction.CommitAsync(ct);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(ct);
+                throw;
+            }
+        }
+
         public async Task UpdateAsync(Prestamo prestamo, CancellationToken ct = default)
         {
             _context.Prestamos.Update(prestamo);

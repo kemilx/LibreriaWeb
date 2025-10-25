@@ -1,12 +1,19 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using SIGEBI.Api.Filters;
 using SIGEBI.IOC;
 using SIGEBI.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSIGEBIPersistence(builder.Configuration);
-builder.Services.AddControllers();
+builder.Services
+    .AddSIGEBIPersistence(builder.Configuration)
+    .AddSIGEBIApplication();
+
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<DomainExceptionFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -23,6 +30,8 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+await EnsureDatabaseCreatedAsync(app.Services);
 
 app.Run();
 
