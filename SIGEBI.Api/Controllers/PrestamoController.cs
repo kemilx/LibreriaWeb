@@ -170,9 +170,26 @@ public class PrestamoController : ControllerBase
         var prestamo = await _prestamoRepository.GetByIdAsync(id, ct);
         if (prestamo is null) return NotFound();
 
+        var estabaActivo = prestamo.Estado == EstadoPrestamo.Activo;
+        Libro? libro = null;
+
+        if (estabaActivo)
+        {
+            libro = await _libroRepository.GetByIdAsync(prestamo.LibroId, ct);
+            if (libro is null)
+            {
+                return NotFound(new { message = "El libro asociado al préstamo no existe." });
+            }
+        }
+
         try
         {
             prestamo.Cancelar(request.Motivo.Trim());
+
+            if (estabaActivo)
+            {
+                libro!.MarcarDevuelto();
+            }
         }
         catch (ArgumentException ex)
         {
@@ -184,6 +201,12 @@ public class PrestamoController : ControllerBase
         }
 
         await _prestamoRepository.UpdateAsync(prestamo, ct);
+
+        if (estabaActivo)
+        {
+            await _libroRepository.UpdateAsync(libro!, ct);
+        }
+
         return Ok(Map(prestamo));
     }
 
