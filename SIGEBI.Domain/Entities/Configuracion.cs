@@ -1,4 +1,3 @@
-﻿using System;
 using SIGEBI.Domain.Base;
 
 namespace SIGEBI.Domain.Entities
@@ -18,26 +17,9 @@ namespace SIGEBI.Domain.Entities
 
         public static Configuracion Crear(string clave, string valor, string? descripcion = null, bool activo = true)
         {
-            if (string.IsNullOrWhiteSpace(clave))
-                throw new ArgumentException("Clave requerida.", nameof(clave));
-            if (string.IsNullOrWhiteSpace(valor))
-                throw new ArgumentException("Valor requerido.", nameof(valor));
-
-            var claveLimpia = clave.Trim();
-            if (claveLimpia.Length > MaxClaveLength)
-                throw new ArgumentException($"La clave no puede exceder {MaxClaveLength} caracteres.", nameof(clave));
-
-            var valorLimpio = valor.Trim();
-            if (valorLimpio.Length > MaxValorLength)
-                throw new ArgumentException($"El valor no puede exceder {MaxValorLength} caracteres.", nameof(valor));
-
-            string? descripcionLimpia = null;
-            if (!string.IsNullOrWhiteSpace(descripcion))
-            {
-                descripcionLimpia = descripcion.Trim();
-                if (descripcionLimpia.Length > MaxDescripcionLength)
-                    throw new ArgumentException($"La descripción no puede exceder {MaxDescripcionLength} caracteres.", nameof(descripcion));
-            }
+            var claveLimpia = DomainValidation.Required(clave, MaxClaveLength, nameof(clave));
+            var valorLimpio = DomainValidation.Required(valor, MaxValorLength, nameof(valor));
+            var descripcionLimpia = DomainValidation.Optional(descripcion, MaxDescripcionLength, nameof(descripcion));
 
             return new Configuracion
             {
@@ -50,31 +32,13 @@ namespace SIGEBI.Domain.Entities
 
         public void ActualizarValor(string nuevoValor)
         {
-            if (string.IsNullOrWhiteSpace(nuevoValor))
-                throw new ArgumentException("Valor requerido.", nameof(nuevoValor));
-
-            var valorLimpio = nuevoValor.Trim();
-            if (valorLimpio.Length > MaxValorLength)
-                throw new ArgumentException($"El valor no puede exceder {MaxValorLength} caracteres.", nameof(nuevoValor));
-
-            Valor = valorLimpio;
+            Valor = DomainValidation.Required(nuevoValor, MaxValorLength, nameof(nuevoValor));
             Touch();
         }
 
         public void ActualizarDescripcion(string? descripcion)
         {
-            if (string.IsNullOrWhiteSpace(descripcion))
-            {
-                Descripcion = null;
-            }
-            else
-            {
-                var descripcionLimpia = descripcion.Trim();
-                if (descripcionLimpia.Length > MaxDescripcionLength)
-                    throw new ArgumentException($"La descripción no puede exceder {MaxDescripcionLength} caracteres.", nameof(descripcion));
-
-                Descripcion = descripcionLimpia;
-            }
+            Descripcion = DomainValidation.Optional(descripcion, MaxDescripcionLength, nameof(descripcion));
             Touch();
         }
 

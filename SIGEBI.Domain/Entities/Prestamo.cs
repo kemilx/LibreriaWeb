@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using SIGEBI.Domain.Base;
 using SIGEBI.Domain.ValueObjects;
 
@@ -19,6 +19,11 @@ namespace SIGEBI.Domain.Entities
 
         public static Prestamo Solicitar(Guid libroId, Guid usuarioId, PeriodoPrestamo periodo)
         {
+            if (libroId == Guid.Empty)
+                throw new DomainException("Debe indicar el libro a prestar.", nameof(libroId));
+            if (usuarioId == Guid.Empty)
+                throw new DomainException("Debe indicar el usuario solicitante.", nameof(usuarioId));
+
             return new Prestamo
             {
                 LibroId = libroId,
@@ -30,7 +35,7 @@ namespace SIGEBI.Domain.Entities
         public void Activar()
         {
             if (Estado != EstadoPrestamo.Pendiente)
-                throw new InvalidOperationException("Solo un préstamo pendiente puede activarse.");
+                throw new DomainException("Solo un préstamo pendiente puede activarse.", nameof(Estado));
             Estado = EstadoPrestamo.Activo;
             Touch();
         }
@@ -46,7 +51,7 @@ namespace SIGEBI.Domain.Entities
         public void MarcarDevuelto(DateTime fechaEntregaUtc, string? observaciones = null)
         {
             if (Estado != EstadoPrestamo.Activo && Estado != EstadoPrestamo.Vencido)
-                throw new InvalidOperationException("Solo préstamos activos o vencidos pueden devolverse.");
+                throw new DomainException("Solo préstamos activos o vencidos pueden devolverse.", nameof(Estado));
             Estado = EstadoPrestamo.Devuelto;
             FechaEntregaRealUtc = fechaEntregaUtc;
 
@@ -58,7 +63,7 @@ namespace SIGEBI.Domain.Entities
             {
                 var observacionesLimpias = observaciones.Trim();
                 if (observacionesLimpias.Length > MaxObservacionesLength)
-                    throw new ArgumentException($"Las observaciones no pueden exceder {MaxObservacionesLength} caracteres.", nameof(observaciones));
+                    throw new DomainException($"Las observaciones no pueden exceder {MaxObservacionesLength} caracteres.", nameof(observaciones));
 
                 Observaciones = observacionesLimpias;
             }
@@ -68,13 +73,13 @@ namespace SIGEBI.Domain.Entities
         public void Cancelar(string motivo)
         {
             if (Estado is not (EstadoPrestamo.Pendiente or EstadoPrestamo.Activo))
-                throw new InvalidOperationException("Solo préstamos pendientes o activos pueden cancelarse.");
+                throw new DomainException("Solo préstamos pendientes o activos pueden cancelarse.", nameof(Estado));
             if (string.IsNullOrWhiteSpace(motivo))
-                throw new ArgumentException("El motivo de cancelación es obligatorio.", nameof(motivo));
+                throw new DomainException("El motivo de cancelación es obligatorio.", nameof(motivo));
 
             var motivoLimpio = motivo.Trim();
             if (motivoLimpio.Length > MaxObservacionesLength)
-                throw new ArgumentException($"El motivo de cancelación no puede exceder {MaxObservacionesLength} caracteres.", nameof(motivo));
+                throw new DomainException($"El motivo de cancelación no puede exceder {MaxObservacionesLength} caracteres.", nameof(motivo));
 
             Estado = EstadoPrestamo.Cancelado;
             Observaciones = motivoLimpio;
@@ -84,7 +89,7 @@ namespace SIGEBI.Domain.Entities
         public void Extender(int dias)
         {
             if (Estado != EstadoPrestamo.Activo)
-                throw new InvalidOperationException("Solo préstamos activos pueden extenderse.");
+                throw new DomainException("Solo préstamos activos pueden extenderse.", nameof(Estado));
             Periodo = Periodo.ExtenderDias(dias);
             Touch();
         }

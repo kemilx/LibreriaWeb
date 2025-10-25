@@ -63,6 +63,7 @@ namespace SIGEBI.Persistence.Repositories
 
         public async Task<IReadOnlyList<Prestamo>> ObtenerPorUsuarioAsync(Guid usuarioId, CancellationToken ct = default)
             => await _context.Prestamos
+                             .AsNoTracking()
                              .Where(p => p.UsuarioId == usuarioId)
                              .OrderByDescending(p => p.CreatedAtUtc)
                              .ToListAsync(ct);
@@ -77,6 +78,14 @@ namespace SIGEBI.Persistence.Repositories
                              .Where(p => p.Estado == EstadoPrestamo.Activo &&
                                          p.Periodo.FechaFinCompromisoUtc < referenciaUtc)
                              .ToListAsync(ct);
+
+        public async Task<int> ContarActivosPorUsuarioAsync(Guid usuarioId, CancellationToken ct = default)
+            => await _context.Prestamos
+                             .AsNoTracking()
+                             .CountAsync(p => p.UsuarioId == usuarioId &&
+                                              (p.Estado == EstadoPrestamo.Pendiente ||
+                                               p.Estado == EstadoPrestamo.Activo ||
+                                               p.Estado == EstadoPrestamo.Vencido), ct);
 
         public async Task<int> ContarPorEstadoAsync(EstadoPrestamo estado, CancellationToken ct = default)
             => await _context.Prestamos.CountAsync(p => p.Estado == estado, ct);

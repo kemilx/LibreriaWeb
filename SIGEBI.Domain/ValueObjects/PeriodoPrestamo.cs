@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using SIGEBI.Domain.Base;
 
 namespace SIGEBI.Domain.ValueObjects
 {
@@ -7,7 +8,6 @@ namespace SIGEBI.Domain.ValueObjects
         public DateTime FechaInicioUtc { get; private set; }
         public DateTime FechaFinCompromisoUtc { get; private set; }
 
-        // Constructor parameterless requerido por EF Core para materializar el owned type.
         private PeriodoPrestamo()
         {
         }
@@ -20,8 +20,7 @@ namespace SIGEBI.Domain.ValueObjects
 
         public static PeriodoPrestamo Create(DateTime fechaInicioUtc, DateTime fechaFinCompromisoUtc)
         {
-            if (fechaFinCompromisoUtc <= fechaInicioUtc)
-                throw new ArgumentException("La fecha fin debe ser posterior a la fecha de inicio.");
+            DomainValidation.EnsureDateOrder(fechaInicioUtc, fechaFinCompromisoUtc, nameof(fechaInicioUtc), nameof(fechaFinCompromisoUtc));
             return new PeriodoPrestamo(fechaInicioUtc, fechaFinCompromisoUtc);
         }
 
@@ -29,7 +28,7 @@ namespace SIGEBI.Domain.ValueObjects
 
         public PeriodoPrestamo ExtenderDias(int dias)
         {
-            if (dias <= 0) throw new ArgumentException("Los días de extensión deben ser positivos.", nameof(dias));
+            DomainValidation.Positive(dias, nameof(dias));
             return new PeriodoPrestamo(FechaInicioUtc, FechaFinCompromisoUtc.AddDays(dias));
         }
 

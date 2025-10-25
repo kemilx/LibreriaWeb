@@ -12,18 +12,23 @@ namespace SIGEBI.Api.Controllers;
 [Route("api/[controller]")]
 public class PrestamoController : ControllerBase
 {
+    private const int MaxPrestamosActivosPorUsuario = 3;
+
     private readonly IPrestamoRepository _prestamoRepository;
     private readonly ILibroRepository _libroRepository;
     private readonly IUsuarioRepository _usuarioRepository;
+    private readonly IPenalizacionRepository _penalizacionRepository;
 
     public PrestamoController(
         IPrestamoRepository prestamoRepository,
         ILibroRepository libroRepository,
-        IUsuarioRepository usuarioRepository)
+        IUsuarioRepository usuarioRepository,
+        IPenalizacionRepository penalizacionRepository)
     {
         _prestamoRepository = prestamoRepository;
         _libroRepository = libroRepository;
         _usuarioRepository = usuarioRepository;
+        _penalizacionRepository = penalizacionRepository;
     }
 
     [HttpGet("{id:guid}")]
@@ -112,16 +117,9 @@ public class PrestamoController : ControllerBase
         var usuario = await _usuarioRepository.GetByIdAsync(prestamo.UsuarioId, ct);
         if (usuario is null) return NotFound(new { message = "El usuario asociado al préstamo no existe." });
 
-        try
-        {
-            libro.MarcarPrestado();
-            prestamo.Activar();
-            usuario.RegistrarPrestamo(prestamo.Id);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        libro.MarcarPrestado();
+        prestamo.Activar();
+        usuario.RegistrarPrestamo(prestamo.Id);
 
         await _libroRepository.UpdateAsync(libro, ct);
         await _prestamoRepository.UpdateAsync(prestamo, ct);
@@ -139,19 +137,8 @@ public class PrestamoController : ControllerBase
         var libro = await _libroRepository.GetByIdAsync(prestamo.LibroId, ct);
         if (libro is null) return NotFound(new { message = "El libro asociado al préstamo no existe." });
 
-        try
-        {
-            prestamo.MarcarDevuelto(request.FechaEntregaUtc, request.Observaciones);
-            libro.MarcarDevuelto();
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        prestamo.MarcarDevuelto(request.FechaEntregaUtc, request.Observaciones);
+        libro.MarcarDevuelto();
 
         await _prestamoRepository.UpdateAsync(prestamo, ct);
         await _libroRepository.UpdateAsync(libro, ct);
@@ -164,7 +151,7 @@ public class PrestamoController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Motivo))
         {
-            return BadRequest(new { message = "Debe indicar un motivo de cancelación." });
+            throw new DomainException("Debe indicar un motivo de cancelación.", nameof(request.Motivo));
         }
 
         var prestamo = await _prestamoRepository.GetByIdAsync(id, ct);
@@ -191,13 +178,19 @@ public class PrestamoController : ControllerBase
                 libro!.MarcarDevuelto();
             }
         }
-        catch (ArgumentException ex)
+
+        prestamo.Cancelar(request.Motivo.Trim());
+
+        if (estabaActivo)
         {
-            return BadRequest(new { message = ex.Message });
+            libro!.MarcarDevuelto();
         }
-        catch (InvalidOperationException ex)
+
+        await _prestamoRepository.UpdateAsync(prestamo, ct);
+
+        if (estabaActivo)
         {
-            return BadRequest(new { message = ex.Message });
+            await _libroRepository.UpdateAsync(libro!, ct);
         }
 
         await _prestamoRepository.UpdateAsync(prestamo, ct);
@@ -215,20 +208,13 @@ public class PrestamoController : ControllerBase
     {
         if (request.Dias <= 0)
         {
-            return BadRequest(new { message = "Los días de extensión deben ser mayores a cero." });
+            throw new DomainException("Los días de extensión deben ser mayores a cero.", nameof(request.Dias));
         }
 
         var prestamo = await _prestamoRepository.GetByIdAsync(id, ct);
         if (prestamo is null) return NotFound();
 
-        try
-        {
-            prestamo.Extender(request.Dias);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        prestamo.Extender(request.Dias);
 
         await _prestamoRepository.UpdateAsync(prestamo, ct);
         return Ok(Map(prestamo));

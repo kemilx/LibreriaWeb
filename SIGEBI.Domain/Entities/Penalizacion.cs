@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using SIGEBI.Domain.Base;
 
 namespace SIGEBI.Domain.Entities
@@ -19,13 +19,13 @@ namespace SIGEBI.Domain.Entities
 
         public static Penalizacion Generar(Guid usuarioId, Guid? prestamoId, decimal monto, DateTime inicioUtc, DateTime finUtc, string motivo)
         {
-            if (monto < 0) throw new ArgumentException("El monto no puede ser negativo.", nameof(monto));
-            if (finUtc <= inicioUtc) throw new ArgumentException("La fecha fin debe ser posterior a la fecha inicio.", nameof(finUtc));
-            if (string.IsNullOrWhiteSpace(motivo)) throw new ArgumentException("Motivo requerido.", nameof(motivo));
+            if (usuarioId == Guid.Empty)
+                throw new DomainException("Debe indicar el usuario asociado a la penalización.", nameof(usuarioId));
 
-            var motivoLimpio = motivo.Trim();
-            if (motivoLimpio.Length > MaxMotivoLength)
-                throw new ArgumentException($"El motivo no puede exceder {MaxMotivoLength} caracteres.", nameof(motivo));
+            DomainValidation.NonNegative(monto, nameof(monto));
+            DomainValidation.EnsureDateOrder(inicioUtc, finUtc, nameof(inicioUtc), nameof(finUtc));
+
+            var motivoLimpio = DomainValidation.Required(motivo, MaxMotivoLength, nameof(motivo));
 
             return new Penalizacion
             {
@@ -52,12 +52,12 @@ namespace SIGEBI.Domain.Entities
         {
             if (!Activa) return;
             if (string.IsNullOrWhiteSpace(razon))
-                throw new ArgumentException("La razón es obligatoria.", nameof(razon));
+                throw new DomainException("La razón es obligatoria para cerrar la penalización.", nameof(razon));
 
             var razonLimpia = razon.Trim();
             var nuevoMotivo = $"{Motivo} | Cierre anticipado: {razonLimpia}";
             if (nuevoMotivo.Length > MaxMotivoLength)
-                throw new InvalidOperationException($"La razón indicada excede el máximo de {MaxMotivoLength} caracteres al combinarse con el motivo existente.");
+                throw new DomainException($"La razón indicada excede el máximo de {MaxMotivoLength} caracteres al combinarse con el motivo existente.", nameof(razon));
 
             Activa = false;
             Motivo = nuevoMotivo;
